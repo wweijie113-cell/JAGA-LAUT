@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌊 Penjaga Lautan</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --blue-deep: #0F4C81;
+  --blue-bright: #00A8E8;
+  --green-accent: #3DDC97;
+  --yellow: #FFD166;
+  --coral: #FF6B6B;
+  --white: #FFFFFF;
+  --glass: rgba(255,255,255,0.15);
+  --glass-border: rgba(255,255,255,0.3);
+  --shadow: 0 8px 32px rgba(15,76,129,0.3);
+  --font-size-base: 16px;
+}
+body {
+  font-family: 'Segoe UI', 'Arial Rounded MT Bold', Arial, sans-serif;
+  background: linear-gradient(180deg,#0a2a4a 0%,#0F4C81 40%,#00A8E8 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: #fff;
+  font-size: var(--font-size-base);
+}
+
+/* ===== HIGH CONTRAST MODE ===== */
+body.high-contrast {
+  background: #000 !important;
+  color: #fff !important;
+  filter: none;
+}
+body.high-contrast .glass-card,
+body.high-contrast .btn-primary,
+body.high-contrast .mission-card {
+  background: #111 !important;
+  border: 2px solid #fff !important;
+  color: #fff !important;
+}
+body.high-contrast .btn-primary { background: #000 !important; color:#FFD166 !important; }
+
+/* ===== LARGE TEXT MODE ===== */
+body.large-text { font-size: 20px !important; }
+body.large-text h1 { font-size: 3rem !important; }
+body.large-text h2 { font-size: 2.2rem !important; }
+body.large-text p, body.large-text button, body.large-text span { font-size: 1.2rem !important; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #0a2a4a; }
+::-webkit-scrollbar-thumb { background: var(--blue-bright); border-radius: 4px; }
+
+/* ===== OCEAN BACKGROUND ===== */
+#ocean-bg {
+  position: fixed; inset: 0; z-index: 0;
+  background: linear-gradient(180deg, #051a35 0%, #0F4C81 50%, #1a6fa8 100%);
+  transition: background 1.5s ease;
+  overflow: hidden;
+}
+#ocean-bg.clean-1 { background: linear-gradient(180deg,#0a2a4a 0%,#155fa0 50%,#1e90c4 100%); }
+#ocean-bg.clean-2 { background: linear-gradient(180deg,#0d3a5c 0%,#1a7ac4 50%,#22a8e0 100%); }
+#ocean-bg.clean-3 { background: linear-gradient(180deg,#104a70 0%,#1a9ad0 50%,#29c4f0 100%); }
+#ocean-bg.clean-4 { background: linear-gradient(180deg,#1a6e99 0%,#21b8f5 50%,#70d8ff 100%); }
+
+/* ===== SUNLIGHT RAYS ===== */
+.sun-rays {
+  position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+  width: 200px; height: 300px; pointer-events: none;
+  transition: opacity 1.5s; opacity: 0;
+}
+.sun-rays.visible { opacity: 0.15; }
+.sun-ray {
+  position: absolute; top: 0; left: 50%;
+  width: 3px; height: 250px;
+  background: linear-gradient(to bottom, #fff8, transparent);
+  transform-origin: top center;
+  border-radius: 2px;
+}
+
+/* ===== WAVES ===== */
+.wave-container { position: absolute; bottom: 0; left: 0; width: 100%; overflow: hidden; }
+.wave-svg { display: block; width: 200%; animation: waveMove 8s linear infinite; }
+.wave-svg2 { display: block; width: 200%; animation: waveMove 12s linear infinite reverse; opacity: 0.5; }
+@keyframes waveMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ===== BUBBLES ===== */
+.bubble {
+  position: absolute; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5), rgba(255,255,255,0.05));
+  border: 1px solid rgba(255,255,255,0.4);
+  animation: bubbleRise linear infinite;
+  pointer-events: none;
+}
+@keyframes bubbleRise {
+  0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 0.6; }
+  100% { transform: translateY(-120vh) translateX(var(--drift,20px)) scale(0.8); opacity: 0; }
+}
+
+/* ===== FISH ===== */
+.fish {
+  position: absolute; font-size: 1.8rem; pointer-events: none;
+  animation: fishSwim linear infinite;
+}
+@keyframes fishSwim {
+  0%   { transform: translateX(-120px) scaleX(1); opacity: 0; }
+  5%   { opacity: 1; }
+  45%  { transform: translateX(50vw) scaleX(1); opacity: 1; }
+  50%  { transform: translateX(50vw) scaleX(-1); opacity: 1; }
+  95%  { transform: translateX(-120px) scaleX(-1); opacity: 1; }
+  100% { transform: translateX(-120px) scaleX(-1); opacity: 0; }
+}
+
+/* ===== LAYOUT ===== */
+#app { position: relative; z-index: 10; min-height: 100vh; }
+
+/* ===== SCREENS ===== */
+.screen { display: none; min-height: 100vh; padding: 20px; }
+.screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+/* ===== GLASS CARD ===== */
+.glass-card {
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 32px;
+  width: 100%;
+  max-width: 760px;
+}
+
+/* ===== BUTTONS ===== */
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: linear-gradient(135deg, var(--green-accent), #2ab87a);
+  color: #0a2a4a; font-weight: 800; font-size: 1.1rem;
+  border: none; border-radius: 50px; padding: 14px 32px;
+  cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(61,220,151,0.4);
+  text-decoration: none; user-select: none;
+}
+.btn-primary:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 8px 25px rgba(61,220,151,0.5); }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--glass); color: #fff; font-weight: 700; font-size: 1rem;
+  border: 1.5px solid var(--glass-border); border-radius: 50px; padding: 12px 28px;
+  cursor: pointer; transition: all 0.3s; backdrop-filter: blur(8px);
+  text-decoration: none; user-select: none;
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.25); transform: translateY(-2px); }
+
+.btn-danger {
+  background: linear-gradient(135deg,#FF6B6B,#cc4444);
+  color: #fff; font-weight: 700; border: none; border-radius: 50px; padding: 10px 24px;
+  cursor: pointer; transition: all 0.3s;
+}
+.btn-row { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 20px; }
+
+/* ===== HUD ===== */
+#hud {
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+  z-index: 100; display: none; gap: 12px; flex-wrap: wrap; justify-content: center;
+  background: rgba(15,76,129,0.7); backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border); border-radius: 50px; padding: 8px 20px;
+}
+#hud.visible { display: flex; }
+.hud-item { display: flex; align-items: center; gap: 6px; font-size: 0.95rem; font-weight: 700; }
+.hud-icon { font-size: 1.1rem; }
+
+/* ===== ACCESSIBILITY BAR ===== */
+#access-bar {
+  position: fixed; top: 10px; right: 14px; z-index: 200;
+  display: flex; gap: 8px;
+}
+.access-btn {
+  background: rgba(15,76,129,0.8); border: 1px solid var(--glass-border);
+  color: #fff; border-radius: 50px; padding: 7px 14px; font-size: 0.85rem;
+  cursor: pointer; transition: all 0.3s; backdrop-filter: blur(8px);
+}
+.access-btn:hover { background: rgba(255,255,255,0.2); }
+.access-btn.active { background: var(--green-accent); color: #0a2a4a; }
+
+/* ===== SOUND BTN ===== */
+#sound-btn {
+  position: fixed; bottom: 18px; right: 18px; z-index: 200;
+  background: rgba(15,76,129,0.8); border: 1px solid var(--glass-border);
+  color: #fff; border-radius: 50%; width: 48px; height: 48px;
+  font-size: 1.3rem; cursor: pointer; transition: all 0.3s; backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+}
+#sound-btn:hover { background: var(--blue-bright); }
+
+/* ===== HOMEPAGE ===== */
+#home h1 {
+  font-size: clamp(2.2rem, 7vw, 4rem); font-weight: 900;
+  text-align: center; text-shadow: 0 4px 20px rgba(0,168,232,0.5);
+  letter-spacing: -0.5px; line-height: 1.1;
+}
+#home .tagline {
+  font-size: clamp(1rem, 3vw, 1.3rem); text-align: center;
+  opacity: 0.88; margin: 14px 0 30px; font-style: italic;
+}
+.title-wave { color: var(--blue-bright); }
+.title-accent { color: var(--green-accent); }
+
+/* ===== MASCOT ===== */
+.mascot-wrap { position: relative; display: inline-block; }
+.mascot { font-size: 5rem; display: block; animation: mascotBob 2.5s ease-in-out infinite; cursor: pointer; }
+@keyframes mascotBob { 0%,100%{transform:translateY(0) rotate(-3deg);} 50%{transform:translateY(-10px) rotate(3deg);} }
+.speech-bubble {
+  position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
+  background: rgba(255,255,255,0.95); color: #0F4C81; border-radius: 18px; padding: 12px 18px;
+  font-weight: 700; font-size: 0.95rem; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  opacity: 0; transition: opacity 0.3s; pointer-events: none; min-width: 180px; text-align: center;
+}
+.speech-bubble::after {
+  content:''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border: 10px solid transparent; border-top-color: rgba(255,255,255,0.95);
+}
+.speech-bubble.visible { opacity: 1; }
+
+/* ===== MISSION SELECT ===== */
+.mission-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px; }
+@media(max-width:520px){ .mission-grid { grid-template-columns: 1fr; } }
+.mission-card {
+  background: var(--glass); border: 2px solid var(--glass-border); border-radius: 20px;
+  padding: 22px; text-align: center; cursor: pointer; transition: all 0.3s;
+  position: relative; overflow: hidden;
+}
+.mission-card:hover { transform: translateY(-5px); border-color: var(--green-accent); box-shadow: 0 8px 24px rgba(61,220,151,0.3); }
+.mission-card.locked { opacity: 0.45; cursor: not-allowed; }
+.mission-card.completed { border-color: var(--green-accent); background: rgba(61,220,151,0.1); }
+.mission-card .mission-icon { font-size: 2.8rem; display: block; margin-bottom: 10px; }
+.mission-card h3 { font-size: 1rem; font-weight: 800; margin-bottom: 6px; }
+.mission-card p { font-size: 0.85rem; opacity: 0.8; }
+.mission-card .badge-check { position: absolute; top: 12px; right: 12px; font-size: 1.3rem; }
+.mission-card .star-row { margin-top: 8px; font-size: 0.85rem; color: var(--yellow); }
+
+/* ===== PROGRESS BAR ===== */
+.progress-wrap { background: rgba(0,0,0,0.2); border-radius: 12px; height: 12px; overflow: hidden; margin: 10px 0; }
+.progress-fill { height: 100%; border-radius: 12px; background: linear-gradient(90deg,var(--green-accent),#00e0a0); transition: width 0.6s ease; }
+
+/* ===== POPUP / MODAL ===== */
+#popup-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(5,26,53,0.75); backdrop-filter: blur(8px);
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+#popup-overlay.visible { display: flex; }
+#popup-box {
+  background: linear-gradient(135deg,#0d3a6e,#155fa0);
+  border: 2px solid var(--glass-border); border-radius: 28px;
+  padding: 36px; max-width: 480px; width: 100%; text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4); animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes popIn { from{transform:scale(0.6);opacity:0;} to{transform:scale(1);opacity:1;} }
+#popup-box h2 { font-size: 1.6rem; margin-bottom: 14px; color: var(--green-accent); }
+#popup-box p { line-height: 1.7; opacity: 0.9; margin-bottom: 20px; }
+#popup-box .fact-badge { background: rgba(61,220,151,0.15); border: 1px solid var(--green-accent); border-radius: 14px; padding: 16px; margin: 14px 0; font-size: 0.95rem; line-height: 1.6; }
+
+/* ===== TOAST ===== */
+#toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(30px);
+  z-index: 600; background: rgba(61,220,151,0.95); color: #0a2a4a;
+  border-radius: 50px; padding: 12px 28px; font-weight: 800; font-size: 1rem;
+  opacity: 0; transition: all 0.4s; pointer-events: none; white-space: nowrap;
+}
+#toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.error { background: rgba(255,107,107,0.95); color: #fff; }
+
+/* ===== BADGES ===== */
+#badge-popup {
+  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+  z-index: 700; background: linear-gradient(135deg,#0a2a4a,#1a6fa8);
+  border: 2px solid var(--yellow); border-radius: 20px;
+  padding: 20px 30px; text-align: center; box-shadow: 0 8px 30px rgba(255,209,102,0.3);
+  opacity: 0; transition: all 0.5s; pointer-events: none;
+}
+#badge-popup.visible { opacity: 1; }
+#badge-popup .badge-icon { font-size: 3rem; display: block; }
+#badge-popup h3 { font-size: 1.1rem; color: var(--yellow); margin: 8px 0 4px; }
+#badge-popup p { font-size: 0.85rem; opacity: 0.8; }
+
+/* ===== ACHIEVEMENTS ===== */
+.achievements-row { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin: 20px 0; }
+.achievement-badge {
+  background: var(--glass); border: 2px solid var(--glass-border); border-radius: 16px;
+  padding: 16px 20px; text-align: center; min-width: 140px;
+  transition: all 0.3s;
+}
+.achievement-badge.earned { border-color: var(--yellow); background: rgba(255,209,102,0.15); }
+.achievement-badge .ab-icon { font-size: 2.2rem; display: block; }
+.achievement-badge .ab-name { font-size: 0.85rem; font-weight: 700; margin-top: 8px; }
+.achievement-badge.locked-badge { opacity: 0.4; filter: grayscale(1); }
+
+/* ===== MISSION 1: BEACH CLEAN ===== */
+#beach-area {
+  position: relative; width: 100%; height: 420px;
+  background: linear-gradient(180deg, rgba(0,168,232,0.3) 0%, rgba(210,180,140,0.3) 100%);
+  border-radius: 20px; overflow: hidden; margin: 16px 0;
+  border: 1px solid var(--glass-border); cursor: default;
+}
+.trash-item, .nature-item {
+  position: absolute; font-size: 2rem; cursor: pointer;
+  transition: transform 0.15s; user-select: none;
+  animation: itemFloat 3s ease-in-out infinite;
+  -webkit-tap-highlight-color: transparent;
+}
+.trash-item:hover { transform: scale(1.2); }
+.trash-item:active { transform: scale(0.9); }
+.nature-item { cursor: not-allowed; }
+@keyframes itemFloat { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
+.item-collected { animation: collectAnim 0.4s ease forwards; pointer-events: none; }
+@keyframes collectAnim { to{transform:scale(0) translateY(-30px);opacity:0;} }
+.item-wrong { animation: shakeWrong 0.4s ease; }
+@keyframes shakeWrong { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-8px);} 75%{transform:translateX(8px);} }
+
+/* ===== MISSION 2: MICROPLASTIC ===== */
+#micro-area {
+  position: relative; width: 100%; height: 420px;
+  background: rgba(0,50,100,0.4); border-radius: 20px; overflow: hidden;
+  margin: 16px 0; border: 1px solid var(--glass-border);
+}
+.micro-particle {
+  position: absolute; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(200,220,255,0.5));
+  border: 1px solid rgba(255,255,255,0.7);
+  cursor: pointer; transition: transform 0.15s;
+  animation: microFloat ease-in-out infinite;
+}
+.micro-particle:hover { transform: scale(1.5); box-shadow: 0 0 8px #fff; }
+.micro-particle:active { transform: scale(0.5); }
+@keyframes microFloat {
+  0%,100%{transform:translate(0,0);} 33%{transform:translate(4px,-6px);} 66%{transform:translate(-4px,4px);}
+}
+
+/* ===== MISSION 3: DRAG & DROP ===== */
+#sort-area { width: 100%; }
+.draggable-items { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 20px 0 10px; min-height: 80px; }
+.draggable {
+  background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 16px; padding: 12px 16px; font-size: 1.5rem; cursor: grab;
+  transition: all 0.2s; user-select: none; display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.draggable span.label { font-size: 0.75rem; font-weight: 700; }
+.draggable:hover { transform: scale(1.1); background: rgba(255,255,255,0.25); }
+.draggable.dragging { opacity: 0.5; cursor: grabbing; }
+.bin-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+.bin {
+  background: rgba(255,255,255,0.1); border: 3px dashed rgba(255,255,255,0.4);
+  border-radius: 20px; padding: 20px; min-width: 140px; text-align: center;
+  transition: all 0.3s; min-height: 120px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.bin.drag-over { border-color: var(--green-accent); background: rgba(61,220,151,0.15); transform: scale(1.05); }
+.bin .bin-icon { font-size: 2.5rem; }
+.bin .bin-label { font-weight: 800; font-size: 0.9rem; }
+.bin.correct-bin { border-color: var(--green-accent); animation: binGlow 0.6s ease; }
+@keyframes binGlow { 0%,100%{box-shadow:none;} 50%{box-shadow:0 0 20px rgba(61,220,151,0.6);} }
+/* Touch drag clue */
+.drag-hint { font-size: 0.8rem; opacity: 0.7; text-align: center; margin-top: 6px; }
+
+/* ===== MISSION 4: QUIZ ===== */
+#quiz-area { width: 100%; }
+.quiz-q { font-size: 1.2rem; font-weight: 800; margin: 20px 0 16px; line-height: 1.5; }
+.quiz-options { display: flex; flex-direction: column; gap: 12px; }
+.quiz-opt {
+  background: var(--glass); border: 2px solid var(--glass-border); border-radius: 16px;
+  padding: 14px 20px; cursor: pointer; font-size: 1rem; font-weight: 600;
+  transition: all 0.3s; text-align: left; color: #fff;
+}
+.quiz-opt:hover { background: rgba(255,255,255,0.25); border-color: var(--blue-bright); }
+.quiz-opt.correct { background: rgba(61,220,151,0.3); border-color: var(--green-accent); }
+.quiz-opt.wrong { background: rgba(255,107,107,0.3); border-color: var(--coral); }
+.quiz-progress { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+.quiz-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: background 0.3s; }
+.quiz-dot.done { background: var(--green-accent); }
+.quiz-dot.current { background: var(--yellow); }
+
+/* ===== ECO FACTS TICKER ===== */
+#eco-ticker {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 90;
+  background: rgba(15,76,129,0.85); backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255,255,255,0.15);
+  padding: 8px 20px; font-size: 0.9rem; overflow: hidden;
+  display: flex; align-items: center; gap: 14px;
+}
+.ticker-label { background: var(--green-accent); color: #0a2a4a; font-weight: 800; border-radius: 20px; padding: 4px 12px; white-space: nowrap; font-size: 0.8rem; flex-shrink: 0; }
+.ticker-text { white-space: nowrap; animation: tickerScroll 20s linear infinite; }
+@keyframes tickerScroll { from{transform:translateX(60vw);} to{transform:translateX(-100%);} }
+
+/* ===== PLEDGE ===== */
+#pledge-text {
+  font-size: 1.05rem; line-height: 1.8; font-style: italic;
+  background: rgba(255,255,255,0.1); border-left: 4px solid var(--green-accent);
+  border-radius: 12px; padding: 20px; margin: 20px 0;
+}
+
+/* ===== CERTIFICATE ===== */
+#cert-screen { background: #fff; color: #0a2a4a; }
+#cert-box {
+  width: 100%; max-width: 720px; padding: 48px;
+  background: linear-gradient(135deg,#e8f4fd,#f0fbf5);
+  border: 6px double #0F4C81; border-radius: 12px;
+  text-align: center; position: relative; overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+}
+#cert-box::before {
+  content:'🌊🐠🐙🌿🐬🌊'; position:absolute; top:14px; left:50%; transform:translateX(-50%);
+  font-size:1.3rem; letter-spacing:6px; opacity:0.25;
+}
+#cert-box::after {
+  content:'🌊🐠🐙🌿🐬🌊'; position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
+  font-size:1.3rem; letter-spacing:6px; opacity:0.25;
+}
+.cert-title { font-size: 2rem; font-weight: 900; color: #0F4C81; letter-spacing: 3px; margin-bottom: 8px; }
+.cert-subtitle { font-size: 1rem; color: #555; margin-bottom: 24px; letter-spacing: 1px; }
+.cert-given { font-size: 0.95rem; color: #666; margin-bottom: 8px; }
+.cert-name { font-size: 2.4rem; font-weight: 900; color: #0F4C81; margin: 12px 0; font-family: Georgia, serif; border-bottom: 2px solid #0F4C81; padding-bottom: 8px; display: inline-block; }
+.cert-desc { font-size: 1rem; color: #444; line-height: 1.7; margin: 16px 0; }
+.cert-score { font-size: 1.3rem; font-weight: 800; color: #00A8E8; margin: 16px 0; }
+.cert-date { font-size: 0.9rem; color: #888; margin-top: 20px; }
+.cert-sig { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ccc; font-size: 0.85rem; color: #666; }
+.cert-sig .sig-name { font-size: 1.1rem; font-weight: 800; color: #0F4C81; font-family: Georgia, serif; margin-bottom: 4px; }
+.cert-waves { position: absolute; bottom: 0; left: 0; right: 0; opacity: 0.08; pointer-events: none; }
+
+/* ===== CONFETTI ===== */
+.confetti-piece {
+  position: fixed; pointer-events: none; z-index: 1000;
+  width: 10px; height: 10px; border-radius: 2px;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  0%   { transform: translateY(-20px) rotate(0); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* ===== FINAL ===== */
+#final-screen .big-title { font-size: clamp(2rem,6vw,3.5rem); font-weight: 900; text-align: center; color: var(--green-accent); text-shadow: 0 0 30px rgba(61,220,151,0.5); }
+
+/* ===== HELPER UTILS ===== */
+.text-center { text-align: center; }
+.mt-10 { margin-top: 10px; }
+.mt-20 { margin-top: 20px; }
+.mb-10 { margin-bottom: 10px; }
+.section-title { font-size: 1.4rem; font-weight: 900; margin-bottom: 6px; }
+.section-sub { font-size: 0.9rem; opacity: 0.8; margin-bottom: 20px; }
+.score-display { font-size: 2rem; font-weight: 900; color: var(--yellow); }
+.emoji-row { font-size: 2rem; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ===== ANIMATIONS ===== */
+.fade-in { animation: fadeIn 0.6s ease both; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+.bounce { animation: bounce 0.6s cubic-bezier(0.34,1.56,0.64,1) both; }
+@keyframes bounce { from{transform:scale(0.5);opacity:0;} to{transform:scale(1);opacity:1;} }
+
+/* ===== NAME INPUT ===== */
+.name-input {
+  background: rgba(255,255,255,0.15); border: 2px solid var(--glass-border);
+  border-radius: 16px; padding: 14px 20px; font-size: 1.1rem; color: #fff;
+  width: 100%; outline: none; transition: border-color 0.3s; font-family: inherit;
+}
+.name-input::placeholder { color: rgba(255,255,255,0.5); }
+.name-input:focus { border-color: var(--green-accent); }
+.name-input.cert-input { background: rgba(15,76,129,0.1); color: #0a2a4a; border-color: #0F4C81; }
+.name-input.cert-input::placeholder { color: #aaa; }
+
+/* ===== OBJECTIVES LIST ===== */
+.obj-list { list-style: none; display: flex; flex-direction: column; gap: 14px; margin: 20px 0; }
+.obj-list li {
+  background: rgba(255,255,255,0.1); border-radius: 14px; padding: 14px 18px;
+  display: flex; align-items: center; gap: 14px; font-size: 1rem; font-weight: 600;
+}
+.obj-list li .obj-icon { font-size: 1.4rem; flex-shrink: 0; }
+
+/* ===== GUIDE STEPS ===== */
+.guide-list { list-style: none; counter-reset: guide; display: flex; flex-direction: column; gap: 12px; }
+.guide-list li {
+  counter-increment: guide;
+  background: rgba(255,255,255,0.1); border-radius: 14px; padding: 14px 18px;
+  display: flex; align-items: center; gap: 14px; font-size: 0.95rem; font-weight: 600;
+}
+.guide-list li::before {
+  content: counter(guide); background: var(--green-accent); color: #0a2a4a;
+  font-weight: 900; border-radius: 50%; width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 0.9rem;
+}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:600px){
+  .glass-card { padding: 20px 16px; }
+  #cert-box { padding: 28px 16px; }
+  .cert-title { font-size: 1.4rem; }
+  .cert-name { font-size: 1.8rem; }
+  .bin { min-width: 100px; padding: 14px 10px; }
+  .draggable { padding: 10px 12px; }
+}
+@media(prefers-reduced-motion: reduce){
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ===== KEYBOARD FOCUS ===== */
+:focus-visible { outline: 3px solid var(--green-accent); outline-offset: 3px; }
+button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--green-accent); }
+</style>
+</head>
+<body>
+
+<!-- ===== OCEAN BACKGROUND ===== -->
+<div id="ocean-bg">
+  <div class="sun-rays" id="sun-rays">
+    <div class="sun-ray" style="transform:rotate(-30deg)"></div>
+    <div class="sun-ray" style="transform:rotate(-15deg)"></div>
+    <div class="sun-ray" style="transform:rotate(0deg)"></div>
+    <div class="sun-ray" style="transform:rotate(15deg)"></div>
+    <div class="sun-ray" style="transform:rotate(30deg)"></div>
+  </div>
+  <!-- Bubbles injected by JS -->
+  <!-- Fish injected by JS -->
+  <div class="wave-container">
+    <svg class="wave-svg" viewBox="0 0 1440 80" preserveAspectRatio="none" style="height:70px;">
+      <path d="M0,40 C180,80 360,0 540,40 C720,80 900,0 1080,40 C1260,80 1440,0 1440,40 L1440,80 L0,80 Z" fill="rgba(0,168,232,0.3)"/>
+    </svg>
+    <svg class="wave-svg2" viewBox="0 0 1440 60" preserveAspectRatio="none" style="height:50px;">
+      <path d="M0,30 C200,60 400,0 600,30 C800,60 1000,0 1200,30 C1400,60 1440,20 1440,30 L1440,60 L0,60 Z" fill="rgba(15,76,129,0.25)"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ===== ACCESSIBILITY BAR ===== -->
+<div id="access-bar" role="toolbar" aria-label="Pilihan Kebolehcapaian">
+  <button class="access-btn" id="contrast-btn" onclick="toggleContrast()" title="Mod Kontras Tinggi" aria-pressed="false">🔆 Kontras</button>
+  <button class="access-btn" id="textsize-btn" onclick="toggleLargeText()" title="Teks Besar" aria-pressed="false">🔤 Besar</button>
+</div>
+
+<!-- ===== SOUND BUTTON ===== -->
+<button id="sound-btn" onclick="toggleSound()" title="Hidupkan/Matikan Bunyi" aria-label="Togol Bunyi">🔊</button>
+
+<!-- ===== HUD ===== -->
+<div id="hud" role="status" aria-live="polite">
+  <div class="hud-item"><span class="hud-icon">⭐</span><span id="hud-score">0</span> Mata</div>
+  <div class="hud-item"><span class="hud-icon">🗑</span><span id="hud-trash">0</span> Dikutip</div>
+  <div class="hud-item"><span class="hud-icon">⏱</span><span id="hud-timer">0:00</span></div>
+  <div class="hud-item"><span class="hud-icon">🏅</span><span id="hud-mission">Misi 1</span></div>
+</div>
+
+<!-- ===== ECO TICKER ===== -->
+<div id="eco-ticker" role="marquee" aria-label="Fakta Alam Sekitar">
+  <span class="ticker-label">🌱 Tahukah Anda?</span>
+  <span class="ticker-text" id="ticker-text">Memuatkan fakta menarik...</span>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div id="toast" role="alert" aria-live="assertive"></div>
+
+<!-- ===== BADGE POPUP ===== -->
+<div id="badge-popup" role="alert" aria-live="assertive">
+  <span class="badge-icon" id="badge-icon">🏅</span>
+  <h3 id="badge-title">Pencapaian Baharu!</h3>
+  <p id="badge-desc">Anda telah membuka pencapaian baharu.</p>
+</div>
+
+<!-- ===== POPUP OVERLAY ===== -->
+<div id="popup-overlay" role="dialog" aria-modal="true" aria-labelledby="popup-title">
+  <div id="popup-box">
+    <div style="font-size:3rem;margin-bottom:10px" id="popup-emoji">🎉</div>
+    <h2 id="popup-title">TAHNIAH!</h2>
+    <div class="fact-badge" id="popup-fact"></div>
+    <button class="btn-primary" onclick="closePopup()" style="margin-top:10px">OK, Teruskan! →</button>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app">
+
+<!-- ========== HOME SCREEN ========== -->
+<div id="home" class="screen active" role="main">
+  <div style="text-align:center;margin-bottom:20px" class="fade-in">
+    <div class="mascot-wrap" style="display:inline-block">
+      <span class="mascot" id="home-mascot" onclick="showMascotMessage()" title="Klik saya!" tabindex="0" role="button" aria-label="Maskot Olly">🐙</span>
+      <div class="speech-bubble" id="home-bubble">Selamat datang! Saya Olly! 👋</div>
+    </div>
+    <h1><span class="title-wave">🌊</span> <span class="title-accent">PENJAGA</span> LAUTAN</h1>
+    <p class="tagline">"Jadilah Wira Lautan Dengan Membersihkan Sampah Marin"</p>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="goToMissions()" tabindex="0">▶️ Mula Bermain</button>
+      <button class="btn-secondary" onclick="showScreen('guide')" tabindex="0">📖 Cara Bermain</button>
+      <button class="btn-secondary" onclick="showScreen('objectives')" tabindex="0">🎯 Objektif Pembelajaran</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== OBJECTIVES SCREEN ========== -->
+<div id="objectives" class="screen">
+  <div class="glass-card fade-in">
+    <div class="text-center mb-10"><span style="font-size:2.5rem">🎯</span></div>
+    <h2 class="section-title text-center">Objektif Pembelajaran</h2>
+    <p class="section-sub text-center">Selepas bermain, murid dapat:</p>
+    <ul class="obj-list">
+      <li><span class="obj-icon">✅</span>Mengenal pasti pelbagai jenis sampah marin</li>
+      <li><span class="obj-icon">✅</span>Mengetahui apa itu Microplastic dan kesannya</li>
+      <li><span class="obj-icon">✅</span>Memahami kesan pencemaran laut terhadap hidupan laut</li>
+      <li><span class="obj-icon">✅</span>Mempraktikkan cara kitar semula yang betul</li>
+      <li><span class="obj-icon">✅</span>Mengamalkan sikap menjaga dan mencintai alam sekitar</li>
+    </ul>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="goToMissions()">▶️ Mula Bermain</button>
+      <button class="btn-secondary" onclick="showScreen('home')">← Kembali</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== GUIDE SCREEN ========== -->
+<div id="guide" class="screen">
+  <div class="glass-card fade-in">
+    <div class="text-center mb-10"><span style="font-size:2.5rem">📖</span></div>
+    <h2 class="section-title text-center">Cara Bermain</h2>
+    <p class="section-sub text-center">Ikuti langkah-langkah berikut:</p>
+    <ol class="guide-list">
+      <li>Klik sampah untuk mengutipnya dan kumpulkan mata.</li>
+      <li>Elakkan mengklik objek semula jadi seperti batu atau rumpai laut.</li>
+      <li>Kumpulkan mata sebanyak mungkin dalam setiap misi.</li>
+      <li>Lengkapkan kesemua 4 misi untuk menyelesaikan permainan.</li>
+      <li>Dapatkan Sijil Penjaga Lautan setelah berjaya!</li>
+    </ol>
+    <div style="margin-top:20px;background:rgba(255,209,102,0.15);border:1px solid var(--yellow);border-radius:14px;padding:16px;text-align:center;">
+      <span style="font-size:1.5rem">🐙</span>
+      <p style="margin-top:8px;font-size:0.95rem"><strong>Olly</strong> akan membimbing anda sepanjang permainan. Klik Olly untuk mendapat galakan!</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="goToMissions()">▶️ Mula Bermain</button>
+      <button class="btn-secondary" onclick="showScreen('home')">← Kembali</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MISSION SELECT ========== -->
+<div id="missions" class="screen">
+  <div class="glass-card fade-in" style="max-width:820px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+      <div>
+        <h2 class="section-title">🗺️ Pilih Misi</h2>
+        <p class="section-sub">Selesaikan semua misi untuk menjadi Penjaga Lautan!</p>
+      </div>
+      <div class="mascot-wrap">
+        <span class="mascot" style="font-size:3rem" onclick="showMascotMessage()" tabindex="0" role="button">🐙</span>
+        <div class="speech-bubble" id="mission-bubble"></div>
+      </div>
+    </div>
+    <!-- Progress -->
+    <div style="margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:6px"><span>Kemajuan Keseluruhan</span><span id="overall-pct">0%</span></div>
+      <div class="progress-wrap"><div class="progress-fill" id="overall-bar" style="width:0%"></div></div>
+    </div>
+    <!-- Achievements row -->
+    <div class="achievements-row" id="achievements-row">
+      <div class="achievement-badge locked-badge" id="badge-1"><span class="ab-icon">🥉</span><span class="ab-name">Pembersih Pantai</span></div>
+      <div class="achievement-badge locked-badge" id="badge-2"><span class="ab-icon">🥈</span><span class="ab-name">Pemburu Mikroplastik</span></div>
+      <div class="achievement-badge locked-badge" id="badge-3"><span class="ab-icon">🥇</span><span class="ab-name">Pakar Kitar Semula</span></div>
+      <div class="achievement-badge locked-badge" id="badge-4"><span class="ab-icon">🏆</span><span class="ab-name">Penjaga Lautan</span></div>
+    </div>
+    <!-- Stats -->
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:20px">
+      <div class="hud-item"><span class="hud-icon">⭐</span>Jumlah Mata: <strong id="total-score-display">0</strong></div>
+      <div class="hud-item"><span class="hud-icon">🗑</span>Dikutip: <strong id="total-trash-display">0</strong></div>
+    </div>
+    <!-- Mission cards -->
+    <div class="mission-grid" id="mission-grid">
+      <div class="mission-card" id="mc1" onclick="startMission(1)" tabindex="0" role="button" aria-label="Misi 1: Bersihkan Pantai">
+        <span class="mission-icon">🏖️</span>
+        <h3>Misi 1: Bersihkan Pantai</h3>
+        <p>Kutip 10 keping sampah dari pantai</p>
+        <div class="star-row">⭐ +10 mata setiap sampah</div>
+        <div class="badge-check" id="bc1"></div>
+      </div>
+      <div class="mission-card locked" id="mc2" tabindex="-1" role="button" aria-label="Misi 2: Cari Mikroplastik (berkunci)">
+        <span class="mission-icon">🔍</span>
+        <h3>Misi 2: Cari Mikroplastik</h3>
+        <p>Cari Microplastic tersembunyi dalam lautan</p>
+        <div class="star-row">⭐ +15 mata setiap penemuan</div>
+        <div class="badge-check" id="bc2"></div>
+      </div>
+      <div class="mission-card locked" id="mc3" tabindex="-1" role="button" aria-label="Misi 3: Asingkan Sampah (berkunci)">
+        <span class="mission-icon">♻️</span>
+        <h3>Misi 3: Asingkan Sampah</h3>
+        <p>Letak sampah ke dalam tong yang betul</p>
+        <div class="star-row">⭐ +10 mata setiap betul</div>
+        <div class="badge-check" id="bc3"></div>
+      </div>
+      <div class="mission-card locked" id="mc4" tabindex="-1" role="button" aria-label="Misi 4: Kuiz Pantas (berkunci)">
+        <span class="mission-icon">❓</span>
+        <h3>Misi 4: Kuiz Pantas</h3>
+        <p>Jawab 5 soalan tentang alam sekitar</p>
+        <div class="star-row">⭐ +20 mata setiap betul</div>
+        <div class="badge-check" id="bc4"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MISSION 1 ========== -->
+<div id="mission1" class="screen">
+  <div class="glass-card fade-in" style="max-width:820px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <h2 class="section-title">🏖️ Misi 1: Bersihkan Pantai</h2>
+        <p class="section-sub">Klik sampah untuk mengutipnya! Elakkan benda semula jadi.</p>
+      </div>
+      <div class="mascot-wrap">
+        <span class="mascot" style="font-size:2.5rem" onclick="showMascotMessage()" tabindex="0" role="button">🐙</span>
+        <div class="speech-bubble" id="m1-bubble"></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span>Sampah dikutip: <strong id="m1-count">0</strong>/10</span>
+      <span>Mata: <strong id="m1-score">0</strong></span>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" id="m1-bar" style="width:0%"></div></div>
+    <div id="beach-area" role="region" aria-label="Kawasan pantai - klik sampah untuk mengutipnya"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="showScreen('missions')">← Keluar Misi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MISSION 2 ========== -->
+<div id="mission2" class="screen">
+  <div class="glass-card fade-in" style="max-width:820px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <h2 class="section-title">🔍 Misi 2: Cari Microplastic</h2>
+        <p class="section-sub">Cari dan klik Microplastic tersembunyi dalam lautan!</p>
+      </div>
+      <div class="mascot-wrap">
+        <span class="mascot" style="font-size:2.5rem" onclick="showMascotMessage()" tabindex="0" role="button">🐙</span>
+        <div class="speech-bubble" id="m2-bubble"></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span>Ditemui: <strong id="m2-count">0</strong>/8</span>
+      <span>Mata: <strong id="m2-score">0</strong></span>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" id="m2-bar" style="width:0%"></div></div>
+    <div id="micro-area" role="region" aria-label="Kawasan lautan - cari Microplastic tersembunyi"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="showScreen('missions')">← Keluar Misi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MISSION 3 ========== -->
+<div id="mission3" class="screen">
+  <div class="glass-card fade-in" style="max-width:820px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <h2 class="section-title">♻️ Misi 3: Asingkan Sampah</h2>
+        <p class="section-sub">Seret sampah ke dalam tong yang betul!</p>
+      </div>
+      <div class="mascot-wrap">
+        <span class="mascot" style="font-size:2.5rem" onclick="showMascotMessage()" tabindex="0" role="button">🐙</span>
+        <div class="speech-bubble" id="m3-bubble"></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span>Diasingkan: <strong id="m3-count">0</strong>/9</span>
+      <span>Mata: <strong id="m3-score">0</strong></span>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" id="m3-bar" style="width:0%"></div></div>
+    <div id="sort-area">
+      <p class="drag-hint">💡 Seret item ke tong yang betul (atau tekan & letak pada skrin sentuh)</p>
+      <div class="draggable-items" id="drag-items"></div>
+      <div class="bin-row" id="bin-row">
+        <div class="bin" id="bin-plastik" data-cat="plastik" 
+             ondragover="e=>e.preventDefault()" ondrop="dropItem(event,'plastik')"
+             role="region" aria-label="Tong Plastik">
+          <div class="bin-icon">🪣</div>
+          <div class="bin-label">♻ Plastik</div>
+        </div>
+        <div class="bin" id="bin-logam" data-cat="logam"
+             ondragover="e=>e.preventDefault()" ondrop="dropItem(event,'logam')"
+             role="region" aria-label="Tong Logam">
+          <div class="bin-icon">🗑️</div>
+          <div class="bin-label">♻ Logam</div>
+        </div>
+        <div class="bin" id="bin-kaca" data-cat="kaca"
+             ondragover="e=>e.preventDefault()" ondrop="dropItem(event,'kaca')"
+             role="region" aria-label="Tong Kaca">
+          <div class="bin-icon">🫙</div>
+          <div class="bin-label">♻ Kaca</div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="showScreen('missions')">← Keluar Misi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MISSION 4 ========== -->
+<div id="mission4" class="screen">
+  <div class="glass-card fade-in" style="max-width:760px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <h2 class="section-title">❓ Misi 4: Kuiz Pantas Penjaga Lautan</h2>
+        <p class="section-sub">Jawab 5 soalan untuk menguji pengetahuan anda!</p>
+      </div>
+      <div class="mascot-wrap">
+        <span class="mascot" style="font-size:2.5rem" onclick="showMascotMessage()" tabindex="0" role="button">🐙</span>
+        <div class="speech-bubble" id="m4-bubble"></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span>Soalan: <strong id="m4-count">1</strong>/5</span>
+      <span>Mata: <strong id="m4-score">0</strong></span>
+    </div>
+    <div class="quiz-progress" id="quiz-dots" role="progressbar" aria-label="Kemajuan kuiz"></div>
+    <div id="quiz-area">
+      <p class="quiz-q" id="quiz-question"></p>
+      <div class="quiz-options" id="quiz-options"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="showScreen('missions')">← Keluar Misi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PLEDGE SCREEN ========== -->
+<div id="pledge" class="screen">
+  <div class="glass-card fade-in text-center">
+    <div style="font-size:3rem;margin-bottom:10px">🌍</div>
+    <h2 class="section-title">Ikrar Penjaga Lautan</h2>
+    <p class="section-sub">Baca dan setujui ikrar berikut sebelum mendapatkan sijil anda.</p>
+    <p id="pledge-text">"Saya berjanji untuk menjaga kebersihan alam sekitar, mengurangkan penggunaan plastik, mengitar semula bahan buangan dan membantu melindungi lautan untuk generasi akan datang."</p>
+    <div style="margin:20px 0">
+      <label style="display:block;margin-bottom:8px;font-weight:700">Nama Murid:</label>
+      <input type="text" class="name-input" id="student-name" placeholder="Taip nama anda di sini..." maxlength="50" aria-label="Nama Murid">
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="acceptPledge()" id="pledge-btn">✅ Saya Setuju & Terima Sijil</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="showScreen('missions')">← Kembali</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== CERTIFICATE SCREEN ========== -->
+<div id="cert-screen" class="screen" style="background:linear-gradient(135deg,#e8f4fd,#f0fbf5)">
+  <div id="cert-box">
+    <div style="font-size:2.5rem;margin-bottom:8px">🌊🏅🌊</div>
+    <div class="cert-title">SIJIL PENGHARGAAN</div>
+    <div class="cert-subtitle">— PENJAGA LAUTAN —</div>
+    <div class="cert-given">Diberikan dengan penuh kebanggaan kepada</div>
+    <div class="cert-name" id="cert-name">Nama Murid</div>
+    <div class="cert-desc">
+      kerana berjaya menyelesaikan program<br>
+      <strong>PENJAGA LAUTAN</strong><br>
+      dan menunjukkan komitmen luar biasa dalam menjaga<br>
+      kebersihan laut serta alam sekitar.
+    </div>
+    <div class="cert-score">
+      ⭐ Jumlah Mata: <span id="cert-score">0</span> | 
+      🏆 Tahap: <span id="cert-level">Penjaga Lautan</span>
+    </div>
+    <div style="display:flex;justify-content:center;gap:20px;font-size:1.5rem;margin:16px 0">
+      🥉 🥈 🥇 🏆
+    </div>
+    <div class="cert-date" id="cert-date"></div>
+    <div class="cert-sig">
+      <div class="sig-name">🌊 Program Penjaga Lautan</div>
+      <div>Pendidikan Alam Sekitar Sekolah Rendah</div>
+      <div style="margin-top:8px;font-style:italic;font-size:0.8rem">✦ Sijil ini dikeluarkan secara digital ✦</div>
+    </div>
+    <svg class="cert-waves" viewBox="0 0 800 80" preserveAspectRatio="none" style="height:60px">
+      <path d="M0,40 C100,70 200,10 300,40 C400,70 500,10 600,40 C700,70 800,20 800,40 L800,80 L0,80 Z" fill="#0F4C81"/>
+    </svg>
+  </div>
+  <div class="btn-row" style="margin-top:20px">
+    <button class="btn-primary" onclick="downloadPDF()" id="download-btn">📥 Muat Turun Sijil PDF</button>
+    <button class="btn-secondary" onclick="showScreen('final')">🎉 Skrin Tamat</button>
+  </div>
+</div>
+
+<!-- ========== FINAL SCREEN ========== -->
+<div id="final" class="screen">
+  <div class="glass-card fade-in text-center">
+    <div style="font-size:4rem;margin-bottom:10px">🌊✨</div>
+    <h1 class="big-title">LAUTAN BERJAYA DISELAMATKAN!</h1>
+    <p style="font-size:1.1rem;margin:16px 0;opacity:0.9">Tahniah! Anda telah menjadi Penjaga Lautan yang hebat!</p>
+    <div class="emoji-row" style="margin:20px 0">🥉 🥈 🥇 🏆</div>
+    <div class="score-display" id="final-score"></div>
+    <p style="margin:6px 0;opacity:0.8">Jumlah mata terkumpul</p>
+    <div style="margin:20px 0;background:rgba(61,220,151,0.15);border:1px solid var(--green-accent);border-radius:16px;padding:20px;">
+      <p style="font-size:1rem;line-height:1.7">🌏 Dengan menyertai program ini, anda telah membantu meningkatkan kesedaran tentang pencemaran laut. Teruskan amalkan sikap menjaga alam sekitar dalam kehidupan seharian!</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="showScreen('cert-screen')">🏅 Lihat Sijil Saya</button>
+      <button class="btn-secondary" onclick="restartGame()">🔄 Main Semula</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- end #app -->
+
+<script>
+/* ============================================================
+   PENJAGA LAUTAN — Main Game Script
+   ============================================================ */
+
+// ===== STATE =====
+const state = {
+  score: 0,
+  trashCollected: 0,
+  missionsCompleted: [false,false,false,false],
+  currentMission: 0,
+  soundOn: true,
+  startTime: null,
+  timerInterval: null,
+  studentName: '',
+};
+
+// ===== ECO FACTS =====
+const ecoFacts = [
+  "Jutaan tan plastik memasuki lautan setiap tahun dan membahayakan hidupan laut.",
+  "Microplastic boleh dijumpai dalam makanan laut yang kita makan setiap hari.",
+  "Menggunakan beg guna semula dapat mengurangkan berjuta beg plastik setiap tahun.",
+  "Botol plastik boleh mengambil masa 450 tahun untuk terurai sepenuhnya.",
+  "Penyedut minuman plastik boleh membahayakan penyu laut dan hidupan laut lain.",
+  "Setiap tahun, lebih 8 juta tan plastik dibuang ke dalam lautan.",
+  "Hampir 70% lautan dunia telah tercemar dengan sisa plastik.",
+  "Ikan boleh tertelan Microplastic dan menjejaskan kualiti makanan laut.",
+  "Coral reef boleh musnah akibat pencemaran plastik dan perubahan iklim.",
+  "Satu tong sampah kitar semula dapat menyelamatkan 2,400 liter minyak.",
+  "Tin aluminium boleh dikitar semula berkali-kali tanpa kehilangan kualiti.",
+  "Botol kaca boleh digunakan semula sehingga 50 kali sebelum dikitar semula.",
+  "Kertas boleh dikitar semula sehingga 5-7 kali sebelum serat menjadi terlalu pendek.",
+  "Penyu laut sering tersilap makan beg plastik sebagai ubur-ubur.",
+  "Lautan menyumbang 50% oksigen yang kita sedut setiap hari.",
+  "Pemuliharaan lautan melindungi lebih daripada 1 juta spesies hidupan laut.",
+  "Mengurangkan penggunaan plastik satu kali guna adalah cara terbaik menjaga laut.",
+  "Komuniti pesisir pantai paling terjejas oleh pencemaran sampah marin.",
+  "Program kitar semula dapat mengurangkan sehingga 60% sisa buangan.",
+  "Lautan yang bersih adalah sumber makanan dan rezeki bagi jutaan nelayan.",
+  "Microplastic telah dijumpai bahkan dalam air minuman dan garam dapur.",
+  "Seekor paus boleh menelan ratusan kilogram plastik sepanjang hidupnya.",
+  "Hutan mangrove membantu menapis pencemaran sebelum memasuki lautan.",
+  "Setiap minit, setara dengan satu trak sampah plastik dibuang ke dalam lautan.",
+];
+
+// ===== TRASH FACTS =====
+const trashFacts = [
+  { item:"botol plastik", fact:"Botol plastik boleh mengambil masa sehingga 450 tahun untuk terurai. Setiap tahun, beribu-ribu botol plastik berakhir di lautan dan membahayakan hidupan laut.", emoji:"🍶" },
+  { item:"beg plastik", fact:"Beg plastik boleh terapung di laut selama 20 tahun. Penyu laut sering tersilap menelannya kerana menyangka ia ubur-ubur!", emoji:"🛍️" },
+  { item:"penyedut minuman", fact:"Penyedut minuman plastik adalah salah satu bahan yang paling kerap memasuki hidung dan mulut hidupan laut. Pilih penyedut besi atau buluh!", emoji:"🥤" },
+  { item:"cawan pakai buang", fact:"Cawan pakai buang mengandungi lapisan plastik yang sukar dikitar semula. Ia boleh kekal di alam sekitar selama 400 tahun!", emoji:"☕" },
+  { item:"bungkus makanan", fact:"Bungkusan makanan plastik terapung di lautan dan menyekat sinaran matahari, menjejaskan ekosistem terumbu karang.", emoji:"🍱" },
+  { item:"topi plastik", fact:"Penutup botol plastik kecil ini sering tertelan oleh burung laut dan ikan kerana menyerupai makanan!", emoji:"🔵" },
+  { item:"plastik bingkisan", fact:"Plastik bingkisan nipis mudah terpecah menjadi Microplastic yang sangat berbahaya apabila terurai di bawah sinaran UV.", emoji:"📦" },
+];
+
+// ===== MASCOT MESSAGES =====
+const mascotMessages = [
+  "Tahniah! Lautan semakin bersih! 🌊",
+  "Hebat! Anda berjaya mengutip sampah! 💪",
+  "Teruskan! Anda hampir selesai! 🎯",
+  "Bagus! Anda sedang membantu alam sekitar! 🌿",
+  "Anda adalah Penjaga Lautan yang hebat! 🏆",
+  "Setiap sampah yang dikutip membezakan! ✨",
+  "Lautan tersenyum kerana usaha anda! 😊",
+  "Wira Lautan! Terus berjuang! ⚡",
+];
+
+// ===== QUIZ DATA =====
+const quizData = [
+  {
+    q: "Apakah yang dimaksudkan dengan Microplastic?",
+    opts: ["Ikan kecil di laut dalam", "Serpihan plastik bersaiz kurang daripada 5 mm", "Batu laut yang kecil"],
+    ans: 1,
+    explain: "Microplastic ialah serpihan plastik yang sangat kecil, berukuran kurang daripada 5 mm. Ia sangat berbahaya kerana boleh memasuki rantai makanan hidupan laut dan manusia."
+  },
+  {
+    q: "Mengapakah kita perlu mengitar semula bahan buangan?",
+    opts: ["Untuk menambahkan pencemaran udara", "Untuk mengurangkan sisa buangan dan melindungi alam sekitar", "Kerana ia mencemarkan sungai dan laut"],
+    ans: 1,
+    explain: "Kitar semula membantu mengurangkan sisa buangan, menjimatkan sumber asli, mengurangkan pencemaran dan melindungi ekosistem bumi kita."
+  },
+  {
+    q: "Berapakah masa yang diperlukan botol plastik untuk terurai di alam sekitar?",
+    opts: ["10 tahun", "100 tahun", "450 tahun"],
+    ans: 2,
+    explain: "Botol plastik boleh mengambil masa sehingga 450 tahun untuk terurai sepenuhnya! Bayangkan berapa generasi manusia yang akan hidup sebelum plastik itu hilang."
+  },
+  {
+    q: "Apakah tindakan TERBAIK untuk mengurangkan pencemaran plastik di laut?",
+    opts: ["Buang sampah di tepi pantai", "Gunakan produk plastik sekali guna sebanyak mungkin", "Kurangkan penggunaan plastik dan guna beg guna semula"],
+    ans: 2,
+    explain: "Cara terbaik adalah mengurangkan penggunaan plastik dari akar umbi, menggunakan barangan guna semula dan mengitar semula sisa plastik dengan betul."
+  },
+  {
+    q: "Apakah yang berlaku kepada hidupan laut apabila lautan tercemar dengan sampah plastik?",
+    opts: ["Mereka hidup lebih sihat dan membesar lebih cepat", "Mereka terdedah kepada bahaya, boleh tertelan plastik dan mati", "Tiada kesan langsung kepada hidupan laut"],
+    ans: 1,
+    explain: "Pencemaran plastik menyebabkan kematian hidupan laut, kemusnahan terumbu karang, keracunan rantai makanan dan kerosakan ekosistem lautan yang sukar dipulihkan."
+  },
+];
+
+// ===== SORT DATA =====
+const sortItems = [
+  { emoji:"🍶", label:"Botol Plastik", cat:"plastik" },
+  { emoji:"🛍️", label:"Beg Plastik", cat:"plastik" },
+  { emoji:"🥤", label:"Cawan Plastik", cat:"plastik" },
+  { emoji:"🥫", label:"Tin Sardin", cat:"logam" },
+  { emoji:"🥤", label:"Tin Minuman", cat:"logam" },
+  { emoji:"🔧", label:"Paku", cat:"logam" },
+  { emoji:"🫙", label:"Balang Kaca", cat:"kaca" },
+  { emoji:"🍷", label:"Botol Kaca", cat:"kaca" },
+  { emoji:"🪟", label:"Cermin", cat:"kaca" },
+];
+
+// ===== AUDIO =====
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTone(freq, dur, type='sine', vol=0.3) {
+  if (!state.soundOn) return;
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(); osc.stop(ctx.currentTime + dur);
+  } catch(e){}
+}
+function playClick()   { playTone(440,0.1); }
+function playSuccess() { [523,659,784].forEach((f,i)=>setTimeout(()=>playTone(f,0.3,'triangle',0.25),i*120)); }
+function playError()   { playTone(220,0.3,'sawtooth',0.2); }
+function playAchiev()  { [784,988,1175,1568].forEach((f,i)=>setTimeout(()=>playTone(f,0.25,'triangle',0.2),i*100)); }
+function playWave()    { playTone(200,1.5,'sine',0.1); }
+
+function toggleSound() {
+  state.soundOn = !state.soundOn;
+  document.getElementById('sound-btn').textContent = state.soundOn ? '🔊' : '🔇';
+  document.getElementById('sound-btn').setAttribute('aria-label', state.soundOn ? 'Matikan Bunyi' : 'Hidupkan Bunyi');
+}
+
+// ===== ACCESSIBILITY =====
+function toggleContrast() {
+  document.body.classList.toggle('high-contrast');
+  const btn = document.getElementById('contrast-btn');
+  const on = document.body.classList.contains('high-contrast');
+  btn.classList.toggle('active', on);
+  btn.setAttribute('aria-pressed', on);
+}
+function toggleLargeText() {
+  document.body.classList.toggle('large-text');
+  const btn = document.getElementById('textsize-btn');
+  const on = document.body.classList.contains('large-text');
+  btn.classList.toggle('active', on);
+  btn.setAttribute('aria-pressed', on);
+}
+
+// ===== SCREEN ROUTING =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const screen = document.getElementById(id);
+  if (screen) {
+    screen.classList.add('active');
+    screen.scrollTop = 0;
+  }
+  // Show/hide HUD
+  const hudScreens = ['mission1','mission2','mission3','mission4'];
+  document.getElementById('hud').classList.toggle('visible', hudScreens.includes(id));
+  // Update ticker
+  rotateTicker();
+}
+
+function goToMissions() {
+  updateMissionCards();
+  updateOverallProgress();
+  showScreen('missions');
+  setTimeout(()=>showMascotSpeech('mission-bubble', pickMascot()), 800);
+}
+
+// ===== TICKER =====
+let tickerIdx = 0;
+function rotateTicker() {
+  tickerIdx = (tickerIdx + 1) % ecoFacts.length;
+  document.getElementById('ticker-text').textContent = ecoFacts[tickerIdx];
+}
+setInterval(rotateTicker, 18000);
+rotateTicker();
+
+// ===== HUD =====
+function updateHUD() {
+  document.getElementById('hud-score').textContent = state.score;
+  document.getElementById('hud-trash').textContent = state.trashCollected;
+  document.getElementById('hud-mission').textContent = `Misi ${state.currentMission}`;
+  if (state.startTime) {
+    const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+    const m = Math.floor(elapsed/60), s = elapsed%60;
+    document.getElementById('hud-timer').textContent = `${m}:${s<10?'0'+s:s}`;
+  }
+}
+
+// ===== MASCOT =====
+function pickMascot() {
+  return mascotMessages[Math.floor(Math.random()*mascotMessages.length)];
+}
+function showMascotSpeech(bubbleId, msg) {
+  const b = document.getElementById(bubbleId);
+  if (!b) return;
+  b.textContent = msg;
+  b.classList.add('visible');
+  setTimeout(()=>b.classList.remove('visible'), 3500);
+}
+function showMascotMessage() {
+  playClick();
+  const ids = ['home-bubble','mission-bubble','m1-bubble','m2-bubble','m3-bubble','m4-bubble'];
+  ids.forEach(id=>{ const e=document.getElementById(id); if(e){ e.textContent=pickMascot(); e.classList.add('visible'); setTimeout(()=>e.classList.remove('visible'),3000); } });
+}
+
+// ===== TOAST =====
+let toastTimer = null;
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'visible' + (isError?' error':'');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.className='', 2500);
+}
+
+// ===== POPUP =====
+let popupCallback = null;
+function showPopup(emoji, title, fact, cb) {
+  document.getElementById('popup-emoji').textContent = emoji;
+  document.getElementById('popup-title').textContent = title;
+  document.getElementById('popup-fact').textContent = fact;
+  document.getElementById('popup-overlay').classList.add('visible');
+  popupCallback = cb || null;
+  playSuccess();
+}
+function closePopup() {
+  document.getElementById('popup-overlay').classList.remove('visible');
+  if (popupCallback) { popupCallback(); popupCallback = null; }
+}
+// Allow ESC to close popup
+document.addEventListener('keydown', e=>{
+  if (e.key==='Escape') closePopup();
+});
+
+// ===== BADGE POPUP =====
+function showBadge(icon, title, desc) {
+  document.getElementById('badge-icon').textContent = icon;
+  document.getElementById('badge-title').textContent = title;
+  document.getElementById('badge-desc').textContent = desc;
+  document.getElementById('badge-popup').classList.add('visible');
+  playAchiev();
+  setTimeout(()=>document.getElementById('badge-popup').classList.remove('visible'), 4000);
+}
+
+// ===== CONFETTI =====
+function launchConfetti(count=80) {
+  const colors = ['#3DDC97','#00A8E8','#FFD166','#FF6B6B','#fff','#0F4C81'];
+  for (let i=0; i<count; i++) {
+    setTimeout(()=>{
+      const c = document.createElement('div');
+      c.className = 'confetti-piece';
+      c.style.left = Math.random()*100 + 'vw';
+      c.style.top = '-20px';
+      c.style.background = colors[Math.floor(Math.random()*colors.length)];
+      c.style.width = (6+Math.random()*12)+'px';
+      c.style.height = (6+Math.random()*12)+'px';
+      c.style.borderRadius = Math.random()>0.5?'50%':'2px';
+      c.style.animationDuration = (1.5+Math.random()*2.5)+'s';
+      document.body.appendChild(c);
+      setTimeout(()=>c.remove(), 4000);
+    }, Math.random()*1500);
+  }
+}
+
+// ===== OCEAN RESTORATION =====
+function updateOceanState() {
+  const done = state.missionsCompleted.filter(Boolean).length;
+  const bg = document.getElementById('ocean-bg');
+  bg.className = done>0?`clean-${done}`:'';
+  const rays = document.getElementById('sun-rays');
+  rays.classList.toggle('visible', done>=2);
+}
+
+// ===== SCORE & MISSION TRACKING =====
+function addScore(pts) {
+  state.score += pts;
+  updateHUD();
+  document.getElementById('total-score-display').textContent = state.score;
+}
+function addTrash(n=1) {
+  state.trashCollected += n;
+  updateHUD();
+  document.getElementById('total-trash-display').textContent = state.trashCollected;
+}
+
+function completeMission(idx) {
+  state.missionsCompleted[idx-1] = true;
+  updateOceanState();
+  updateMissionCards();
+  updateOverallProgress();
+  // Unlock badge
+  const badges = [
+    {el:'badge-1',icon:'🥉',title:'Pembersih Pantai',desc:'Berjaya menyiapkan Misi 1!'},
+    {el:'badge-2',icon:'🥈',title:'Pemburu Mikroplastik',desc:'Berjaya menyiapkan Misi 2!'},
+    {el:'badge-3',icon:'🥇',title:'Pakar Kitar Semula',desc:'Berjaya menyiapkan Misi 3!'},
+    {el:'badge-4',icon:'🏆',title:'Penjaga Lautan',desc:'Berjaya menyelesaikan semua misi!'},
+  ];
+  const b = badges[idx-1];
+  document.getElementById(b.el).classList.remove('locked-badge');
+  document.getElementById(b.el).classList.add('earned');
+  setTimeout(()=>showBadge(b.icon,'Pencapaian Baharu: '+b.title, b.desc), 600);
+
+  // Check if all done
+  if (state.missionsCompleted.every(Boolean)) {
+    setTimeout(()=>{ showBadge('🏆','PENJAGA LAUTAN!','Anda telah menyelesaikan semua misi!'); },1500);
+    setTimeout(()=>showScreen('pledge'), 4000);
+  } else {
+    setTimeout(()=>{ goToMissions(); showMascotSpeech('mission-bubble', pickMascot()); }, 3000);
+  }
+}
+
+function updateMissionCards() {
+  const done = state.missionsCompleted;
+  for (let i=1;i<=4;i++) {
+    const mc = document.getElementById('mc'+i);
+    const bc = document.getElementById('bc'+i);
+    if (done[i-1]) {
+      mc.classList.add('completed'); mc.classList.remove('locked');
+      bc.textContent = '✅';
+    } else if (i===1 || done[i-2]) {
+      mc.classList.remove('locked'); mc.setAttribute('tabindex','0');
+    } else {
+      mc.classList.add('locked'); mc.setAttribute('tabindex','-1');
+    }
+  }
+}
+function updateOverallProgress() {
+  const done = state.missionsCompleted.filter(Boolean).length;
+  const pct = Math.round((done/4)*100);
+  document.getElementById('overall-pct').textContent = pct+'%';
+  document.getElementById('overall-bar').style.width = pct+'%';
+}
+
+function startMission(n) {
+  if (n>1 && !state.missionsCompleted[n-2]) { showToast('Selesaikan misi sebelumnya dahulu!',true); return; }
+  if (state.missionsCompleted[n-1]) { showToast('Misi ini sudah selesai! Terus ke misi seterusnya.',false); }
+  state.currentMission = n;
+  if (!state.startTime) state.startTime = Date.now();
+  if (!state.timerInterval) state.timerInterval = setInterval(updateHUD, 1000);
+  playClick();
+  if (n===1) initMission1();
+  if (n===2) initMission2();
+  if (n===3) initMission3();
+  if (n===4) initMission4();
+  showScreen('mission'+n);
+  setTimeout(()=>showMascotSpeech('m'+n+'-bubble', pickMascot()), 800);
+}
+
+// ========== MISSION 1: BEACH CLEAN ==========
+let m1Score=0, m1Count=0, m1Total=10, m1Done=false;
+
+const trashTypes = [
+  {emoji:'🍶',label:'Botol Plastik',type:'trash'},
+  {emoji:'🛍️',label:'Beg Plastik',type:'trash'},
+  {emoji:'🥤',label:'Penyedut Minuman',type:'trash'},
+  {emoji:'☕',label:'Cawan Pakai Buang',type:'trash'},
+  {emoji:'📦',label:'Bungkus Plastik',type:'trash'},
+  {emoji:'🧴',label:'Botol Syampu',type:'trash'},
+  {emoji:'🧻',label:'Tisu Terpakai',type:'trash'},
+];
+const natureTypes = [
+  {emoji:'🪸',label:'Terumbu Karang',type:'nature'},
+  {emoji:'🌿',label:'Rumpai Laut',type:'nature'},
+  {emoji:'🪨',label:'Batu Laut',type:'nature'},
+  {emoji:'🐚',label:'Kerang',type:'nature'},
+  {emoji:'⭐',label:'Bintang Laut',type:'nature'},
+];
+
+function initMission1() {
+  if (state.missionsCompleted[0]) return;
+  m1Score=0; m1Count=0; m1Done=false;
+  document.getElementById('m1-count').textContent=0;
+  document.getElementById('m1-score').textContent=0;
+  document.getElementById('m1-bar').style.width='0%';
+  const area = document.getElementById('beach-area');
+  area.innerHTML = '';
+  const positions = generatePositions(18, 90, 85);
+  positions.forEach((pos,i)=>{
+    const isTrash = i < 14;
+    const pool = isTrash ? trashTypes : natureTypes;
+    const item = pool[Math.floor(Math.random()*pool.length)];
+    const el = document.createElement('div');
+    el.className = isTrash ? 'trash-item' : 'nature-item';
+    el.textContent = item.emoji;
+    el.title = item.label;
+    el.setAttribute('aria-label', item.label + (isTrash?'- klik untuk kutip':'- jangan klik'));
+    el.setAttribute('tabindex','0');
+    el.style.left = pos.x+'%';
+    el.style.top = pos.y+'%';
+    el.style.animationDelay = (Math.random()*2)+'s';
+    el.style.animationDuration = (2+Math.random()*2)+'s';
+    if (isTrash) {
+      el.dataset.label = item.label;
+      el.onclick = ()=>collectTrash(el);
+      el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();collectTrash(el);} };
+    } else {
+      el.onclick = ()=>wrongClick(el);
+      el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();wrongClick(el);} };
+    }
+    area.appendChild(el);
+  });
+}
+
+function generatePositions(n, xMax, yMax) {
+  const pos = []; let tries = 0;
+  while (pos.length<n && tries<200) {
+    tries++;
+    const x = 5+Math.random()*(xMax-10);
+    const y = 5+Math.random()*(yMax-10);
+    const tooClose = pos.some(p=>Math.hypot(p.x-x,p.y-y)<8);
+    if (!tooClose) pos.push({x,y});
+  }
+  return pos;
+}
+
+function collectTrash(el) {
+  if (m1Done) return;
+  playSuccess();
+  el.classList.add('item-collected');
+  m1Count++; m1Score+=10;
+  addScore(10); addTrash(1);
+  document.getElementById('m1-count').textContent = m1Count;
+  document.getElementById('m1-score').textContent = m1Score;
+  document.getElementById('m1-bar').style.width = (m1Count/m1Total*100)+'%';
+  // Random fact popup
+  const tf = trashFacts[Math.floor(Math.random()*trashFacts.length)];
+  setTimeout(()=>el.remove(), 400);
+  if (m1Count % 3 === 0 || m1Count===m1Total) {
+    showPopup('🎉','TAHNIAH!',`Anda mengutip ${tf.emoji} ${tf.item}!\n\n${tf.fact}`);
+  } else {
+    showToast(`+10 mata! ${tf.emoji} ${tf.item} dikutip!`);
+    showMascotSpeech('m1-bubble', pickMascot());
+  }
+  if (m1Count >= m1Total && !m1Done) {
+    m1Done = true;
+    setTimeout(()=>{
+      showPopup('🏖️','Misi 1 Selesai!','Tahniah! Anda berjaya membersihkan pantai. Lautan menjadi lebih bersih berkat usaha anda!', ()=>completeMission(1));
+    }, 600);
+  }
+}
+function wrongClick(el) {
+  playError();
+  el.classList.add('item-wrong');
+  showToast('Ini bukan sampah! Jangan kutip benda semula jadi! 🚫', true);
+  setTimeout(()=>el.classList.remove('item-wrong'),500);
+}
+
+// ========== MISSION 2: MICROPLASTIC ==========
+let m2Score=0, m2Count=0, m2Total=8, m2Done=false;
+function initMission2() {
+  if (state.missionsCompleted[1]) return;
+  m2Score=0; m2Count=0; m2Done=false;
+  document.getElementById('m2-count').textContent=0;
+  document.getElementById('m2-score').textContent=0;
+  document.getElementById('m2-bar').style.width='0%';
+  const area = document.getElementById('micro-area');
+  area.innerHTML='';
+  const positions = generatePositions(12,92,88);
+  const sizes = [6,7,8,9,10,11,12,7,8,9,6,10];
+  positions.forEach((pos,i)=>{
+    const sz = sizes[i % sizes.length];
+    const el = document.createElement('div');
+    el.className = 'micro-particle';
+    el.style.width = sz+'px';
+    el.style.height = sz+'px';
+    el.style.left = pos.x+'%';
+    el.style.top = pos.y+'%';
+    el.style.animationDuration = (3+Math.random()*3)+'s';
+    el.style.animationDelay = (Math.random()*3)+'s';
+    el.setAttribute('tabindex','0');
+    el.setAttribute('aria-label','Microplastic - klik untuk menemui');
+    el.title = 'Microplastic - klik untuk menemui!';
+    el.onclick = ()=>collectMicro(el);
+    el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();collectMicro(el);} };
+    area.appendChild(el);
+  });
+  // Hint text
+  const hint = document.createElement('div');
+  hint.style.cssText='position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:0.85rem;opacity:0.6;pointer-events:none';
+  hint.textContent='💡 Cari titik-titik putih kecil dan klik!';
+  area.appendChild(hint);
+}
+function collectMicro(el) {
+  if (m2Done || el.dataset.collected) return;
+  el.dataset.collected = '1';
+  playSuccess();
+  m2Count++; m2Score+=15;
+  addScore(15); addTrash(1);
+  document.getElementById('m2-count').textContent = m2Count;
+  document.getElementById('m2-score').textContent = m2Score;
+  document.getElementById('m2-bar').style.width = (m2Count/m2Total*100)+'%';
+  el.style.background='radial-gradient(circle,#3DDC97,transparent)';
+  el.style.transform='scale(0)';
+  if (m2Count%3===0 || m2Count===m2Total) {
+    showPopup('🔬','Microplastic Ditemui!','Microplastic ialah serpihan plastik yang berukuran kurang daripada 5 mm. Ia boleh memasuki rantai makanan manusia melalui hidupan laut. Bahaya yang tidak kelihatan!');
+  } else {
+    showToast(`+15 mata! Microplastic ditemui! 🔬`);
+    showMascotSpeech('m2-bubble', pickMascot());
+  }
+  if (m2Count>=m2Total && !m2Done) {
+    m2Done=true;
+    setTimeout(()=>{
+      showPopup('🔍','Misi 2 Selesai!','Luar biasa! Anda berjaya mengesan semua Microplastic dalam lautan. Sekarang anda tahu betapa tersembunyinya bahaya ini!', ()=>completeMission(2));
+    }, 600);
+  }
+}
+
+// ========== MISSION 3: DRAG & DROP ==========
+let m3Score=0, m3Count=0, m3Total=9, m3Done=false;
+let dragSrcId=null, touchItem=null;
+
+function initMission3() {
+  if (state.missionsCompleted[2]) return;
+  m3Score=0; m3Count=0; m3Done=false;
+  document.getElementById('m3-count').textContent=0;
+  document.getElementById('m3-score').textContent=0;
+  document.getElementById('m3-bar').style.width='0%';
+  const container = document.getElementById('drag-items');
+  container.innerHTML='';
+  // Shuffle items
+  const shuffled = [...sortItems].sort(()=>Math.random()-0.5);
+  shuffled.forEach((item,i)=>{
+    const el = document.createElement('div');
+    el.className='draggable';
+    el.id='drag-'+i;
+    el.dataset.cat = item.cat;
+    el.innerHTML=`${item.emoji}<span class="label">${item.label}</span>`;
+    el.draggable=true;
+    el.setAttribute('tabindex','0');
+    el.setAttribute('aria-label',item.label+' - seret ke tong yang betul');
+    // Mouse drag
+    el.addEventListener('dragstart',e=>{ dragSrcId=el.id; el.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    el.addEventListener('dragend',()=>el.classList.remove('dragging'));
+    // Keyboard drop (press Enter then click bin)
+    el.addEventListener('keydown',e=>{
+      if(e.key==='Enter'||e.key===' '){ e.preventDefault(); selectForKeyboard(el); }
+    });
+    // Touch
+    el.addEventListener('touchstart',e=>{ touchItem=el; el.style.opacity='0.5'; },{ passive:true });
+    container.appendChild(el);
+  });
+  // Setup bins for drag
+  ['plastik','logam','kaca'].forEach(cat=>{
+    const bin = document.getElementById('bin-'+cat);
+    bin.addEventListener('dragover',e=>{ e.preventDefault(); bin.classList.add('drag-over'); });
+    bin.addEventListener('dragleave',()=>bin.classList.remove('drag-over'));
+    bin.addEventListener('drop',e=>{ e.preventDefault(); bin.classList.remove('drag-over'); dropItem(e,cat); });
+    // Touch drop
+    bin.addEventListener('touchend',e=>{
+      e.preventDefault();
+      if (touchItem) { doSort(touchItem, cat); touchItem.style.opacity=''; touchItem=null; }
+      bin.classList.remove('drag-over');
+    });
+    bin.addEventListener('touchmove',e=>{
+      e.preventDefault();
+      // highlight bin on touch
+      ['plastik','logam','kaca'].forEach(c=>document.getElementById('bin-'+c).classList.remove('drag-over'));
+      bin.classList.add('drag-over');
+    },{passive:false});
+  });
+}
+
+let keyboardSelected = null;
+function selectForKeyboard(el) {
+  if (keyboardSelected) keyboardSelected.style.outline='';
+  keyboardSelected = el;
+  el.style.outline='3px solid '+getComputedStyle(document.documentElement).getPropertyValue('--green-accent');
+  showToast('Item dipilih! Sekarang klik tong yang betul.', false);
+  // Add click handler to bins temporarily
+  ['plastik','logam','kaca'].forEach(cat=>{
+    document.getElementById('bin-'+cat).onclick=()=>{
+      if(keyboardSelected){
+        doSort(keyboardSelected,cat);
+        keyboardSelected.style.outline='';
+        keyboardSelected=null;
+        ['plastik','logam','kaca'].forEach(c=>document.getElementById('bin-'+c).onclick=null);
+      }
+    };
+  });
+}
+
+function dropItem(event, cat) {
+  if (!dragSrcId) return;
+  const el = document.getElementById(dragSrcId);
+  if (!el) return;
+  doSort(el, cat);
+  dragSrcId = null;
+}
+
+function doSort(el, cat) {
+  if (m3Done || !el) return;
+  const correct = el.dataset.cat === cat;
+  if (correct) {
+    playSuccess(); m3Score+=10; m3Count++;
+    addScore(10);
+    document.getElementById('m3-count').textContent=m3Count;
+    document.getElementById('m3-score').textContent=m3Score;
+    document.getElementById('m3-bar').style.width=(m3Count/m3Total*100)+'%';
+    showToast(`✅ Betul! +10 mata!`);
+    el.style.transform='scale(0)';
+    const bin = document.getElementById('bin-'+cat);
+    bin.classList.add('correct-bin');
+    setTimeout(()=>{ el.remove(); bin.classList.remove('correct-bin'); },600);
+    showMascotSpeech('m3-bubble', pickMascot());
+    if (m3Count>=m3Total && !m3Done) {
+      m3Done=true;
+      setTimeout(()=>{
+        showPopup('♻️','Misi 3 Selesai!','Syabas! Anda telah menguasai cara mengasingkan sampah dengan betul. Kitar semula adalah kunci kepada alam sekitar yang lebih baik!', ()=>completeMission(3));
+      },600);
+    }
+  } else {
+    playError();
+    el.style.animation='none'; el.offsetHeight; // reset
+    el.style.animation='shakeWrong 0.4s ease';
+    const cats={plastik:'Plastik',logam:'Logam',kaca:'Kaca'};
+    showToast(`❌ Salah! Item ini perlu ke tong ${cats[el.dataset.cat]}!`, true);
+    setTimeout(()=>el.style.animation='',500);
+  }
+}
+
+// ========== MISSION 4: QUIZ ==========
+let m4Score=0, m4Idx=0, m4Done=false, m4Answered=false;
+function initMission4() {
+  if (state.missionsCompleted[3]) return;
+  m4Score=0; m4Idx=0; m4Done=false; m4Answered=false;
+  document.getElementById('m4-count').textContent=1;
+  document.getElementById('m4-score').textContent=0;
+  renderQuizDots();
+  renderQuestion();
+}
+function renderQuizDots() {
+  const c = document.getElementById('quiz-dots');
+  c.innerHTML='';
+  quizData.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='quiz-dot'+(i<m4Idx?' done':i===m4Idx?' current':'');
+    c.appendChild(d);
+  });
+}
+function renderQuestion() {
+  if (m4Idx>=quizData.length) { finishQuiz(); return; }
+  m4Answered=false;
+  const q=quizData[m4Idx];
+  document.getElementById('quiz-question').textContent=(m4Idx+1)+'. '+q.q;
+  document.getElementById('m4-count').textContent=m4Idx+1;
+  const opts=document.getElementById('quiz-options');
+  opts.innerHTML='';
+  q.opts.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='quiz-opt';
+    btn.textContent=String.fromCharCode(65+i)+'. '+opt;
+    btn.onclick=()=>answerQuiz(i,btn);
+    opts.appendChild(btn);
+  });
+  renderQuizDots();
+  showMascotSpeech('m4-bubble','Berfikir dengan teliti! 🤔');
+}
+function answerQuiz(i,btn) {
+  if (m4Answered || m4Done) return;
+  m4Answered=true;
+  const q=quizData[m4Idx];
+  const allBtns=document.querySelectorAll('.quiz-opt');
+  allBtns.forEach(b=>b.disabled=true);
+  if (i===q.ans) {
+    btn.classList.add('correct');
+    m4Score+=20; addScore(20);
+    document.getElementById('m4-score').textContent=m4Score;
+    showToast('✅ Betul! +20 mata!');
+    playSuccess();
+    showMascotSpeech('m4-bubble','Hebat! Jawapan betul! 🎉');
+  } else {
+    btn.classList.add('wrong');
+    allBtns[q.ans].classList.add('correct');
+    showToast('❌ Tidak betul. Cuba lagi!', true);
+    playError();
+    showMascotSpeech('m4-bubble','Tak apa! Kita belajar dari kesilapan! 💪');
+  }
+  // Show explanation
+  setTimeout(()=>{
+    showPopup(i===q.ans?'🎉':'💡', i===q.ans?'Betul!':'Jawapan Betul:', q.explain, ()=>{
+      m4Idx++;
+      renderQuestion();
+    });
+  }, 700);
+}
+function finishQuiz() {
+  if (m4Done) return; m4Done=true;
+  document.getElementById('quiz-options').innerHTML='<p style="text-align:center;font-size:1.1rem;padding:20px">Kuiz selesai! Skor: '+m4Score+'/100</p>';
+  setTimeout(()=>{
+    showPopup('🏆','Kuiz Selesai!','Anda telah menjawab semua soalan! Skor kuiz anda: '+m4Score+'/100 mata. Pengetahuan anda tentang alam sekitar sangat bagus!', ()=>completeMission(4));
+  },500);
+}
+
+// ========== PLEDGE ==========
+function acceptPledge() {
+  const name = document.getElementById('student-name').value.trim();
+  if (!name) { showToast('Sila masukkan nama anda dahulu!',true); document.getElementById('student-name').focus(); return; }
+  state.studentName = name;
+  playAchiev();
+  launchConfetti();
+  generateCertificate();
+  showScreen('cert-screen');
+}
+
+// ========== CERTIFICATE ==========
+function generateCertificate() {
+  const name = state.studentName || 'Murid';
+  const score = state.score;
+  const level = score>=300?'Penjaga Lautan Tegar':score>=200?'Penjaga Lautan':score>=100?'Pembersih Pantai':'Pejuang Alam';
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ms-MY',{year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('cert-name').textContent = name;
+  document.getElementById('cert-score').textContent = score;
+  document.getElementById('cert-level').textContent = level;
+  document.getElementById('cert-date').textContent = '📅 Tarikh: '+dateStr;
+  document.getElementById('final-score').textContent = score+' Mata';
+}
+
+// ========== PDF DOWNLOAD ==========
+async function downloadPDF() {
+  const btn = document.getElementById('download-btn');
+  btn.textContent = '⏳ Menjana PDF...';
+  btn.disabled = true;
+  try {
+    const { jsPDF } = window.jspdf;
+    const certBox = document.getElementById('cert-box');
+    const canvas = await html2canvas(certBox, { scale:2, useCORS:true, backgroundColor:'#e8f4fd' });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+    const pw = pdf.internal.pageSize.getWidth();
+    const ph = pdf.internal.pageSize.getHeight();
+    const ratio = Math.min(pw/canvas.width*96, ph/canvas.height*96);
+    const iw = canvas.width * ratio / 96;
+    const ih = canvas.height * ratio / 96;
+    const x = (pw-iw)/2; const y = (ph-ih)/2;
+    pdf.addImage(imgData,'PNG',x,y,iw,ih);
+    pdf.save('Sijil_Penjaga_Lautan_'+state.studentName.replace(/\s+/g,'_')+'.pdf');
+    showToast('✅ Sijil PDF berjaya dimuat turun!');
+  } catch(e) {
+    showToast('Ralat menjana PDF. Cuba lagi.', true);
+    console.error(e);
+  }
+  btn.textContent = '📥 Muat Turun Sijil PDF';
+  btn.disabled = false;
+}
+
+// ========== FINAL SCREEN ==========
+function restartGame() {
+  state.score=0; state.trashCollected=0; state.missionsCompleted=[false,false,false,false];
+  state.currentMission=0; state.startTime=null; state.studentName='';
+  if (state.timerInterval){ clearInterval(state.timerInterval); state.timerInterval=null; }
+  m1Score=0;m1Count=0;m1Done=false;
+  m2Score=0;m2Count=0;m2Done=false;
+  m3Score=0;m3Count=0;m3Done=false;
+  m4Score=0;m4Idx=0;m4Done=false;
+  document.getElementById('total-score-display').textContent=0;
+  document.getElementById('total-trash-display').textContent=0;
+  document.getElementById('student-name').value='';
+  updateOceanState();
+  ['badge-1','badge-2','badge-3','badge-4'].forEach(id=>{
+    document.getElementById(id).classList.remove('earned');
+    document.getElementById(id).classList.add('locked-badge');
+  });
+  updateMissionCards();
+  updateOverallProgress();
+  showScreen('home');
+  showMascotSpeech('home-bubble','Selamat bermain semula! 🎮');
+}
+
+// ========== KEYBOARD NAV FOR MISSION CARDS ==========
+document.querySelectorAll('.mission-card').forEach(card=>{
+  card.addEventListener('keydown',e=>{
+    if (e.key==='Enter'||e.key===' ') { e.preventDefault(); card.click(); }
+  });
+});
+
+// ========== OCEAN ANIMATIONS ==========
+function spawnBubbles() {
+  const bg = document.getElementById('ocean-bg');
+  for (let i=0; i<20; i++) {
+    setTimeout(()=>{
+      const b = document.createElement('div');
+      b.className='bubble';
+      const sz = 4+Math.random()*14;
+      b.style.width=sz+'px'; b.style.height=sz+'px';
+      b.style.left=(Math.random()*100)+'%';
+      b.style.bottom='-20px';
+      b.style.setProperty('--drift',(Math.random()*40-20)+'px');
+      const dur = 6+Math.random()*10;
+      b.style.animationDuration=dur+'s';
+      b.style.animationDelay=(Math.random()*8)+'s';
+      bg.appendChild(b);
+    }, i*200);
+  }
+  // Respawn
+  setInterval(()=>{
+    const b = document.createElement('div');
+    b.className='bubble';
+    const sz = 4+Math.random()*12;
+    b.style.width=sz+'px'; b.style.height=sz+'px';
+    b.style.left=(Math.random()*100)+'%';
+    b.style.bottom='-20px';
+    b.style.setProperty('--drift',(Math.random()*40-20)+'px');
+    b.style.animationDuration=(7+Math.random()*8)+'s';
+    b.style.animationDelay='0s';
+    bg.appendChild(b);
+    setTimeout(()=>b.remove(), 16000);
+  }, 800);
+}
+
+function spawnFish() {
+  const bg = document.getElementById('ocean-bg');
+  const fishEmojis = ['🐟','🐠','🐡','🦈','🐬','🦑'];
+  setInterval(()=>{
+    const f = document.createElement('div');
+    f.className='fish';
+    f.textContent = fishEmojis[Math.floor(Math.random()*fishEmojis.length)];
+    f.style.top = (10+Math.random()*70)+'%';
+    const dur = 18+Math.random()*15;
+    f.style.animationDuration = dur+'s';
+    f.style.animationDelay = '0s';
+    f.style.fontSize = (1.2+Math.random()*0.8)+'rem';
+    bg.appendChild(f);
+    setTimeout(()=>f.remove(), dur*1000+1000);
+  }, 5000);
+}
+
+// ========== INIT ==========
+spawnBubbles();
+spawnFish();
+setTimeout(()=>{ showMascotSpeech('home-bubble','Helo! Saya Olly! 🐙 Klik saya!'); }, 1500);
+setInterval(()=>{ if(document.getElementById('home').classList.contains('active')){ showMascotSpeech('home-bubble',pickMascot()); } }, 8000);
+rotateTicker();
+
+// Mission card click handlers
+for (let i=1;i<=4;i++){
+  const mc=document.getElementById('mc'+i);
+  if(mc) mc.addEventListener('click',()=>startMission(i));
+}
+
+// Bin drag events inline fallback via attribute style
+// Already handled via addEventListener above
+</script>
+</body>
+</html>
